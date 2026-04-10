@@ -10,8 +10,7 @@ Sistema interativo em HTML5 para acompanhamento, gestao e analise comparativa de
 
 ## Autor
 
-**Prof. David L. Azevedo**
-Instituto de Fisica, Universidade de Brasilia (UnB)
+**Prof. David L. Azevedo** - Instituto de Fisica, Universidade de Brasilia (UnB)
 E-mail: david888azv@unb.br
 
 ---
