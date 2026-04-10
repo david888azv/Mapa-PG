@@ -134,6 +134,21 @@ a{color:#1565C0;}
         <li>Clique no cabecalho de qualquer coluna da tabela para ordenar</li>
         <li>Os dados de docentes para 2022-2024 utilizam forward-fill do ultimo ano disponivel (2021)</li>
     </ul>
+
+    <div class="warn-box" style="margin-top:16px;">
+        <strong>Ressalva sobre o numero de docentes:</strong><br>
+        Nos dados brutos disponibilizados pelo Portal de Dados Abertos da CAPES, alguns programas de pos-graduacao
+        apresentam o numero de docentes igual a zero em determinados anos, especialmente no terceiro quadrienio
+        (Q3, 2021-2024), cujos dados de docentes so foram publicados ate 2021. Essa situacao pode ocorrer tambem
+        pontualmente em outros quadrienios para programas especificos.<br><br>
+        Para estimar a producao por pesquisador nesses casos, o MAPA-PG adota a seguinte estrategia de
+        <strong>forward-fill</strong>: quando o numero de docentes de um programa e zero em um determinado ano,
+        o sistema utiliza o <strong>ultimo registro diferente de zero</strong> disponivel para aquele programa
+        como substituto. Isso garante que as metricas de produtividade (artigos/docente/ano) possam ser calculadas
+        de forma consistente, mesmo na ausencia de dados completos de docentes.<br><br>
+        Os valores estimados por este metodo devem ser interpretados com cautela, pois o numero real de
+        pesquisadores ativos pode ter variado no periodo.
+    </div>
 </div>
 </div>
 

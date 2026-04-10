@@ -1,6 +1,4 @@
-# MAPA-PG
-
-**Monitoramento e Analise de Producao Academica da Pos-Graduacao**
+# MAPA-PG — Monitoramento e Analise de Producao Academica da Pos-Graduacao
 
 Sistema interativo em HTML5 para acompanhamento, gestao e analise comparativa de programas de pos-graduacao brasileiros na area de Astronomia / Fisica, com dados do Portal de Dados Abertos da CAPES.
 
