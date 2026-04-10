@@ -3,7 +3,7 @@
 Sistema interativo em HTML5 para acompanhamento, gestao e analise comparativa de programas de pos-graduacao brasileiros na area de Astronomia / Fisica, com dados do Portal de Dados Abertos da CAPES.
 
 <p align="center">
-  <img src="logos/unb.png" alt="UnB" height="80"/>
+  <img src="logos/unb_marca.jpg" alt="Universidade de Brasilia" height="100"/>
 </p>
 
 ---
@@ -11,7 +11,7 @@ Sistema interativo em HTML5 para acompanhamento, gestao e analise comparativa de
 ## Autor
 
 **Prof. David L. Azevedo**
-Universidade de Brasilia (UnB)
+Instituto de Fisica, Universidade de Brasilia (UnB)
 E-mail: david888azv@unb.br
 
 ---
