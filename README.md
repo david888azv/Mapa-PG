@@ -54,7 +54,7 @@ As URLs para download de todos os dados brutos estao documentadas no arquivo `he
 
 ## Acknowledgments
 
-This work was supported by the Brazilian research agencies CAPES and CNPq. The authors acknowledge the Distrito Federal Research Foundation (FAPDF) for financial and equipment support (Grants 04/2017 and 09/2022). D.L.A. acknowledges additional support from CNPq research productivity fellowship (Proc. 306456/2025-7).
+This work was supported by the Brazilian research agencies CAPES and CNPq. The author acknowledges the Distrito Federal Research Foundation (FAPDF) for financial and equipment support (Grants 04/2017 and 09/2022). D.L.A. acknowledges additional support from CNPq research productivity fellowship (Proc. 306456/2025-7).
 
 <p align="center">
   <img src="logos/capes.jpg" alt="CAPES" height="60"/>&nbsp;&nbsp;&nbsp;
