@@ -1,0 +1,54 @@
+================================================================
+  MAPA-PG v1.4
+  Monitoramento e Analise de Producao Academica da Pos-Graduacao
+================================================================
+
+  Autor: Prof. David L. Azevedo
+  Instituicao: Universidade de Brasilia (UnB)
+  Contato: david888azv@unb.br | (61) 98212-5084
+  Data: Abril 2026
+
+================================================================
+  COMO EXECUTAR
+================================================================
+
+  1. Abra o arquivo  1.4-mapa-pg.html  em qualquer navegador
+     moderno (Chrome, Firefox, Edge ou Safari).
+
+  2. Na primeira abertura e necessaria conexao com internet
+     para carregar a biblioteca de graficos (Chart.js via CDN).
+
+  3. Pronto! O sistema carrega automaticamente o arquivo
+     dados_fisica.json com todos os dados pre-processados.
+
+================================================================
+  CONTEUDO DESTA PASTA
+================================================================
+
+  1.4-mapa-pg.html   - Aplicacao principal (HTML5, autocontida)
+  help-doc.html      - Documentacao e fontes de dados com URLs
+  dados_fisica.json  - Dados pre-processados de 67 programas
+  LEIA-ME.txt        - Este arquivo
+
+================================================================
+  SOBRE OS DADOS
+================================================================
+
+  Todos os dados utilizados foram obtidos do Portal de Dados
+  Abertos da CAPES (https://dadosabertos.capes.gov.br/), como
+  parte da iniciativa do Governo Federal de transparencia e
+  acesso a informacao publica (Lei n. 12.527/2011).
+
+  Os links para download de todos os dados brutos da Coleta
+  CAPES estao documentados no arquivo help-doc.html, acessivel
+  tambem pelo botao "Help" dentro do sistema.
+
+================================================================
+  COMPATIBILIDADE
+================================================================
+
+  Funciona em Windows, Linux e macOS.
+  Basta copiar esta pasta para qualquer computador.
+  Nao requer instalacao de software adicional.
+
+================================================================
