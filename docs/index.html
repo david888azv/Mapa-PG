@@ -27,6 +27,9 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color:
 .header { background: linear-gradient(135deg, var(--azul), var(--azul2)); color: #fff;
     padding: 12px 24px; display: flex; justify-content: space-between; align-items: center;
     position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+.header-left { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; }
+.header-icon { width: 44px; height: 44px; border-radius: 8px; flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(0,0,0,.3); }
 .header h1 { font-size: 22px; font-weight: 700; letter-spacing: 1px; }
 .header h1 span { color: var(--accent); }
 .header .meta { text-align: right; font-size: 12px; opacity: .85; line-height: 1.5; }
@@ -120,6 +123,8 @@ tr:hover { background: #EEF2F7; }
 
 @media (max-width: 768px) {
     .header { padding: 10px 14px; }
+    .header-left { gap: 8px; }
+    .header-icon { width: 36px; height: 36px; }
     .header h1 { font-size: 15px; line-height: 1.2; }
     .header h1 span { display: block; font-size: 18px; margin-bottom: 2px; }
     .header .meta { font-size: 10px; }
@@ -171,8 +176,11 @@ tr:hover { background: #EEF2F7; }
 <body>
 
 <div class="header">
-    <button class="menu-toggle" id="menuToggle" aria-label="Abrir filtros">☰</button>
-    <h1><span>MAPA-PG</span> — Monitoramento e Análise de Produção Acadêmica da Pós-Graduação</h1>
+    <div class="header-left">
+        <button class="menu-toggle" id="menuToggle" aria-label="Abrir filtros">☰</button>
+        <img src="icons/icon-192.png" alt="Mapa-PG" class="header-icon">
+        <h1><span>MAPA-PG</span> — Monitoramento e Análise de Produção Acadêmica da Pós-Graduação</h1>
+    </div>
     <div class="meta">
         <div>Prof. David L. Azevedo</div>
         <div id="headerDate"></div>
