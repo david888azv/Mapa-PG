@@ -1,7 +1,8 @@
-const CACHE = 'mapa-pg-v1.5.8';
+const CACHE = 'mapa-pg-v1.5.9';
 const ASSETS = [
   './',
   './index.html',
+  './estatisticas.html',
   './manifest.json',
   './chart.umd.min.js',
   './dados_fisica.json',
