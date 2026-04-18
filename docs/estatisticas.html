@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#4A148C">
+<meta name="description" content="MAPA-PG — Estatísticas da Pós-Graduação em Astronomia/Física (CAPES)">
+<title>MAPA-PG — Estatísticas da Pós-Graduação</title>
+<script src="chart.umd.min.js"></script>
+<style>
+:root {
+    --azul:#2C3E50; --azul2:#34495E; --azul3:#1A252F;
+    --accent:#E91E63; --accent2:#F48FB1;
+    --roxo:#4A148C; --roxo2:#6A1B9A; --roxo3:#7B1FA2;
+    --verde:#27AE60; --laranja:#F39C12; --vermelho:#E74C3C;
+    --bg:#F5F7FA; --card:#FFFFFF; --borda:#E0E4E8;
+    --txt:#2C3E50; --txt2:#7F8C8D;
+    --n2:#78909C; --n3:#607D8B; --n4:#9C27B0; --n5:#2196F3; --n6:#FF9800; --n7:#4CAF50;
+    --unb:#E91E63;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--txt);}
+
+.header{background:linear-gradient(135deg,var(--roxo),var(--roxo3));color:#fff;padding:12px 24px;
+    display:flex;justify-content:space-between;align-items:center;
+    position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.3);}
+.header-left{display:flex;align-items:center;gap:14px;flex:1;min-width:0;}
+.header-icon{width:44px;height:44px;border-radius:8px;flex-shrink:0;
+    background:#fff;object-fit:contain;box-shadow:0 2px 6px rgba(0,0,0,.4);}
+.header h1{font-size:20px;font-weight:700;letter-spacing:1px;}
+.header h1 span{color:#FFECB3;}
+.header .meta{text-align:right;font-size:12px;opacity:.85;line-height:1.5;}
+
+.container{display:flex;min-height:calc(100vh - 90px);}
+.sidebar{width:300px;min-width:300px;background:var(--card);border-right:1px solid var(--borda);
+    padding:14px;overflow-y:auto;max-height:calc(100vh - 90px);}
+.main{flex:1;padding:18px;overflow-y:auto;max-height:calc(100vh - 90px);}
+
+.filter-group{margin-bottom:14px;}
+.filter-group h3{font-size:12px;text-transform:uppercase;color:var(--txt2);
+    margin-bottom:6px;letter-spacing:.5px;border-bottom:2px solid var(--accent);padding-bottom:3px;}
+.filter-group label{display:block;padding:2px 0;font-size:12px;cursor:pointer;}
+.filter-group label:hover{background:#f0f2f5;}
+.filter-group input[type="checkbox"]{margin-right:6px;accent-color:var(--accent);}
+.filter-group select{width:100%;padding:5px;border:1px solid var(--borda);border-radius:4px;font-size:12px;}
+
+.btn{display:block;width:100%;padding:9px;margin-top:6px;border:none;border-radius:6px;
+    font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{background:#C2185B;transform:translateY(-1px);}
+.btn-secondary{background:var(--azul);color:#fff;}
+.btn-secondary:hover{background:var(--azul3);}
+.btn-export{background:var(--verde);color:#fff;}
+.btn-export:hover{background:#1E8449;}
+
+.card{background:var(--card);border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.08);
+    padding:14px;margin-bottom:12px;}
+.card h2{font-size:14px;color:var(--roxo);margin-bottom:8px;border-bottom:2px solid var(--roxo3);padding-bottom:4px;}
+
+.stats-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+.stat-box{flex:1;min-width:100px;background:#F3E5F5;border-radius:4px;padding:8px 6px;text-align:center;
+    border-left:3px solid var(--roxo3);}
+.stat-box .value{font-size:18px;font-weight:700;color:var(--roxo);}
+.stat-box .label{font-size:9px;color:var(--txt2);text-transform:uppercase;line-height:1.2;margin-top:2px;}
+
+.chart-container{position:relative;height:380px;margin:10px 0;}
+.chart-row{display:flex;gap:14px;flex-wrap:wrap;}
+.chart-half{flex:1;min-width:380px;}
+
+.tabs-section{display:flex;gap:0;margin-bottom:14px;border-bottom:2px solid var(--borda);flex-wrap:wrap;}
+.tab-sec{padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600;color:var(--txt2);
+    border-bottom:3px solid transparent;transition:.2s;}
+.tab-sec:hover{color:var(--txt);background:#f8f8f8;}
+.tab-sec.active{color:var(--roxo);border-bottom-color:var(--roxo3);}
+
+.section-panel{display:none;}
+.section-panel.active{display:block;}
+
+.loading{text-align:center;padding:40px;}
+.loading .spinner{width:48px;height:48px;border:4px solid var(--borda);
+    border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+.toast{position:fixed;bottom:20px;right:20px;background:var(--verde);color:#fff;
+    padding:12px 20px;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.3);
+    opacity:0;transition:opacity .3s;z-index:999;}
+.toast.show{opacity:1;}
+
+.status-bar{background:var(--azul3);color:#aaa;padding:4px 24px;font-size:11px;
+    display:flex;justify-content:space-between;}
+
+table.data-table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0;}
+table.data-table th{background:var(--roxo);color:#fff;padding:6px 8px;text-align:left;font-weight:600;font-size:11px;}
+table.data-table td{padding:5px 8px;border-bottom:1px solid var(--borda);}
+table.data-table tr:nth-child(even){background:#FAF3FC;}
+table.data-table tr:hover{background:#E1BEE7;}
+
+.chip-toggle{display:inline-flex;gap:0;border:1px solid var(--borda);border-radius:6px;overflow:hidden;margin:6px 0;}
+.chip-toggle button{border:none;padding:6px 14px;font-size:11px;font-weight:600;cursor:pointer;
+    background:#f0f0f0;color:var(--txt2);transition:.2s;}
+.chip-toggle button.active{background:var(--roxo3);color:#fff;}
+.chip-toggle button:hover:not(.active){background:#ddd;}
+
+.menu-toggle{display:none;background:none;border:none;color:#fff;font-size:26px;
+    cursor:pointer;padding:4px 10px;margin-right:6px;}
+.sidebar-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;
+    background:rgba(0,0,0,.5);z-index:90;}
+.sidebar-overlay.show{display:block;}
+
+@media(max-width:900px){
+    .container{flex-direction:column;}
+    .sidebar{width:100%;min-width:auto;max-height:none;}
+    .main{max-height:none;padding:10px;}
+    .chart-half{min-width:100%;}
+}
+@media(max-width:768px){
+    .header{padding:10px 14px;}
+    .header-left{gap:8px;}
+    .header-icon{width:36px;height:36px;}
+    .header h1{font-size:14px;line-height:1.2;}
+    .header h1 span{display:block;font-size:16px;margin-bottom:2px;}
+    .header .meta{font-size:10px;}
+    .menu-toggle{display:inline-block;}
+    .container{flex-direction:column;min-height:calc(100vh - 110px);}
+    .sidebar{position:fixed;top:64px;left:-100%;width:86%;max-width:320px;
+        height:calc(100vh - 64px);max-height:none;z-index:100;transition:left .3s;
+        box-shadow:2px 0 12px rgba(0,0,0,.25);}
+    .sidebar.open{left:0;}
+    .main{padding:10px;max-height:none;}
+    .stat-box{min-width:75px;padding:5px 3px;}
+    .stat-box .value{font-size:14px;}
+    .card{padding:10px;margin-bottom:8px;}
+    .chart-container{height:260px;margin:8px 0;}
+    .tabs-section{overflow-x:auto;flex-wrap:nowrap;}
+    .tab-sec{padding:6px 10px;font-size:11px;white-space:nowrap;}
+    .btn{padding:8px;font-size:12px;}
+    .status-bar{padding:4px 10px;font-size:9px;flex-wrap:wrap;gap:4px;}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-left">
+        <button class="menu-toggle" id="menuToggle" aria-label="Abrir filtros">&#9776;</button>
+        <img src="icons/icon-192.png" alt="Mapa-PG" class="header-icon">
+        <h1><span>MAPA-PG</span> &#8212; Estat&#237;sticas da P&#243;s-Gradua&#231;&#227;o</h1>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;">
+        <div class="meta">
+            <div>Prof. David L. Azevedo</div>
+            <div id="headerDate"></div>
+        </div>
+        <button onclick="window.close(); if(!window.closed) window.location.href='index.html';"
+            style="background:#FFF;color:var(--roxo);border:none;padding:8px 18px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;transition:.2s;box-shadow:0 2px 6px rgba(0,0,0,.3);"
+            onmouseover="this.style.background='#F3E5F5'" onmouseout="this.style.background='#FFF'">
+            &#8592; Voltar
+        </button>
+    </div>
+</div>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="container">
+    <div class="sidebar" id="sidebar">
+        <div class="filter-group">
+            <h3>&#128202; Filtros</h3>
+            <p style="font-size:11px;color:var(--txt2);margin-bottom:8px;">Selecione filtros e clique <strong>Atualizar</strong>.</p>
+        </div>
+
+        <div class="filter-group">
+            <h3>Nota CAPES</h3>
+            <label><input type="checkbox" class="nota-chk" value="2" checked> Nota 2</label>
+            <label><input type="checkbox" class="nota-chk" value="3" checked> Nota 3</label>
+            <label><input type="checkbox" class="nota-chk" value="4" checked> Nota 4</label>
+            <label><input type="checkbox" class="nota-chk" value="5" checked> Nota 5</label>
+            <label><input type="checkbox" class="nota-chk" value="6" checked> Nota 6</label>
+            <label><input type="checkbox" class="nota-chk" value="7" checked> Nota 7</label>
+        </div>
+
+        <div class="filter-group">
+            <h3>Quadri&#234;nio</h3>
+            <label><input type="checkbox" class="quad-chk" value="2013-2016" checked> 2013&#8211;2016 (Q1)</label>
+            <label><input type="checkbox" class="quad-chk" value="2017-2020" checked> 2017&#8211;2020 (Q2)</label>
+            <label><input type="checkbox" class="quad-chk" value="2021-2024" checked> 2021&#8211;2024 (Q3)</label>
+        </div>
+
+        <div class="filter-group">
+            <h3>Regi&#227;o</h3>
+            <label><input type="checkbox" class="reg-chk" value="N" checked> Norte</label>
+            <label><input type="checkbox" class="reg-chk" value="NE" checked> Nordeste</label>
+            <label><input type="checkbox" class="reg-chk" value="CO" checked> Centro-Oeste</label>
+            <label><input type="checkbox" class="reg-chk" value="SE" checked> Sudeste</label>
+            <label><input type="checkbox" class="reg-chk" value="S" checked> Sul</label>
+        </div>
+
+        <div class="filter-group">
+            <h3>UF</h3>
+            <div style="display:flex;gap:4px;margin-bottom:6px;">
+                <button type="button" onclick="ufAll(true)" style="flex:1;padding:3px;font-size:10px;border:1px solid var(--borda);background:#F0F2F5;border-radius:3px;cursor:pointer;">Todos</button>
+                <button type="button" onclick="ufAll(false)" style="flex:1;padding:3px;font-size:10px;border:1px solid var(--borda);background:#F0F2F5;border-radius:3px;cursor:pointer;">Nenhum</button>
+            </div>
+            <div id="ufFilter" style="max-height:180px;overflow-y:auto;border:1px solid var(--borda);padding:6px;border-radius:4px;background:#FAFBFC;"></div>
+        </div>
+
+        <div class="filter-group">
+            <h3>&#128269; Buscar por sigla da IES</h3>
+            <label><input type="checkbox" id="searchEnabled"> Filtrar por sigla</label>
+            <input type="text" id="searchSigla" placeholder="ex: UNB, UFRJ, USP" disabled
+                style="width:100%;padding:6px;margin-top:4px;border:1px solid var(--borda);border-radius:4px;font-size:12px;text-transform:uppercase;">
+            <p style="font-size:10px;color:var(--txt2);margin-top:4px;">Busca parcial.</p>
+        </div>
+
+        <div class="filter-group">
+            <h3>Tipo de Produ&#231;&#227;o</h3>
+            <label><input type="checkbox" class="sub-chk" value="25" checked> Artigo em Peri&#243;dico</label>
+            <label><input type="checkbox" class="sub-chk" value="8" checked> Resumo</label>
+            <label><input type="checkbox" class="sub-chk" value="9" checked> Trab. de Congresso</label>
+            <label><input type="checkbox" class="sub-chk" value="26" checked> Cap&#237;tulo de Livro</label>
+            <label><input type="checkbox" class="sub-chk" value="10" checked> Texto em Jornal</label>
+        </div>
+
+        <div class="filter-group">
+            <h3>Estrato de Fator de Impacto</h3>
+            <label><input type="checkbox" class="if-chk" value="lo" checked> IF &lt; 2.2 (Baixo)</label>
+            <label><input type="checkbox" class="if-chk" value="mi" checked> 2.2 &le; IF &le; 8.0 (M&#233;dio)</label>
+            <label><input type="checkbox" class="if-chk" value="hi" checked> IF &gt; 8.0 (Alto)</label>
+        </div>
+
+        <button class="btn btn-primary" onclick="atualizar()">Atualizar Estat&#237;sticas</button>
+        <button class="btn btn-secondary" onclick="marcarTodos()">Marcar todos</button>
+        <button class="btn btn-secondary" onclick="desmarcarTodos()">Desmarcar todos</button>
+
+        <div style="margin-top:16px;border-top:2px solid var(--borda);padding-top:12px;">
+            <div class="filter-group"><h3>&#128230; Exportar</h3></div>
+            <button class="btn btn-export" onclick="exportCSV()">Exportar CSV</button>
+            <button class="btn btn-export" onclick="exportReport()">Relat&#243;rio TXT</button>
+        </div>
+
+        <button class="btn" onclick="window.open('index.html','_self')" style="background:var(--azul);color:#fff;margin-top:16px;">&#128200; Painel Principal</button>
+        <button class="btn" onclick="window.open('help-doc.html','_blank')" style="background:#607D8B;color:#fff;margin-top:4px;">? Ajuda / Documenta&#231;&#227;o</button>
+    </div>
+
+    <div class="main" id="main">
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p id="loadingMsg">Carregando dados da CAPES...</p>
+        </div>
+        <div id="results" style="display:none;"></div>
+    </div>
+</div>
+
+<div class="status-bar">
+    <span id="statusLeft">Carregando...</span>
+    <span id="statusRight">MAPA-PG &#8212; Estat&#237;sticas | Prof. David L. Azevedo</span>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const VERSION = '1.5';
+
+const UF_REGIAO = {
+    'AC':'N','AM':'N','AP':'N','PA':'N','RO':'N','RR':'N','TO':'N',
+    'AL':'NE','BA':'NE','CE':'NE','MA':'NE','PB':'NE','PE':'NE','PI':'NE','RN':'NE','SE':'NE',
+    'DF':'CO','GO':'CO','MT':'CO','MS':'CO',
+    'ES':'SE','MG':'SE','RJ':'SE','SP':'SE',
+    'PR':'S','RS':'S','SC':'S'
+};
+const REGIAO_LABELS = { N:'Norte', NE:'Nordeste', CO:'Centro-Oeste', SE:'Sudeste', S:'Sul' };
+const REGIAO_CORES  = { N:'#27AE60', NE:'#F39C12', CO:'#9B59B6', SE:'#3498DB', S:'#E74C3C' };
+
+const NOTAS_ALL = [2,3,4,5,6,7];
+const NOTA_CORES = { 2:'#78909C', 3:'#607D8B', 4:'#9C27B0', 5:'#2196F3', 6:'#FF9800', 7:'#4CAF50' };
+
+const QUAD_ALL = ['2013-2016','2017-2020','2021-2024'];
+const QUAD_CORES = { '2013-2016':'#1B5E20', '2017-2020':'#2196F3', '2021-2024':'#FF5722' };
+
+const SUB_LABELS = { '25':'Artigo em Peri\u00f3dico', '8':'Resumo', '9':'Trab. de Congresso', '26':'Cap\u00edtulo de Livro', '10':'Texto em Jornal' };
+const SUB_ORDER  = ['25','8','9','26','10'];
+const SUB_CORES  = ['#2196F3','#FF9800','#9C27B0','#4CAF50','#F44336'];
+
+const VIN_LABELS = { perm:'Permanente', colab:'Colaborador', visit:'Visitante' };
+const VIN_CORES  = { perm:'#2196F3', colab:'#FF9800', visit:'#9C27B0' };
+
+const IF_LABELS = { lo:'IF < 2.2 (Baixo)', mi:'2.2 \u2264 IF \u2264 8.0 (M\u00e9dio)', hi:'IF > 8.0 (Alto)' };
+const IF_CORES  = { lo:'#8BC34A', mi:'#FFC107', hi:'#E53935' };
+
+const BOLSA_CORES = { pq:'#E91E63', spq:'#78909C' };
+const UNB_COLOR = '#E91E63';
+
+let DATA = null;
+let _charts = {};
+let _chartTypes = { nota:'pie', reg:'pie', sub:'pie', vin:'pie', bolsa:'pie', if:'pie' };
+
+function setStatus(msg) { document.getElementById('statusLeft').textContent = msg; }
+function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+async function loadAll() {
+    try {
+        const r = await fetch('dados_fisica.json');
+        DATA = await r.json();
+        DATA.data.forEach(d => { d._r = UF_REGIAO[d.uf] || '?'; });
+        buildUfFilter();
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('results').style.display = 'block';
+        atualizar();
+        setStatus('Dados carregados: ' + DATA.data.length + ' registros');
+    } catch(e) {
+        document.getElementById('loadingMsg').innerHTML =
+            '<span style="color:#E74C3C;">Erro: ' + e.message + '</span>';
+    }
+}
+
+function buildUfFilter() {
+    const ufs = [...new Set(DATA.data.map(d => d.uf))].sort();
+    const byRegion = { N:[], NE:[], CO:[], SE:[], S:[] };
+    ufs.forEach(u => { const r = UF_REGIAO[u]; if (byRegion[r]) byRegion[r].push(u); });
+    const div = document.getElementById('ufFilter');
+    let html = '';
+    ['N','NE','CO','SE','S'].forEach(r => {
+        if (!byRegion[r].length) return;
+        html += '<div style="font-size:9px;color:var(--txt2);text-transform:uppercase;margin-top:4px;">' + REGIAO_LABELS[r] + '</div>';
+        html += '<div style="display:flex;flex-wrap:wrap;gap:4px 8px;">';
+        byRegion[r].forEach(u => {
+            html += '<label style="font-size:11px;display:inline-flex;align-items:center;"><input type="checkbox" class="uf-chk" value="' + u + '" checked style="margin-right:2px;">' + u + '</label>';
+        });
+        html += '</div>';
+    });
+    div.innerHTML = html;
+}
+
+function ufAll(checked) {
+    document.querySelectorAll('.uf-chk').forEach(e => { e.checked = checked; });
+}
+function marcarTodos() {
+    document.querySelectorAll('#sidebar input[type="checkbox"]').forEach(e => e.checked = true);
+}
+function desmarcarTodos() {
+    document.querySelectorAll('#sidebar input[type="checkbox"]').forEach(e => e.checked = false);
+}
+
+function getFilters() {
+    const notas = [...document.querySelectorAll('.nota-chk:checked')].map(e => +e.value);
+    const quads = [...document.querySelectorAll('.quad-chk:checked')].map(e => e.value);
+    const regs  = [...document.querySelectorAll('.reg-chk:checked')].map(e => e.value);
+    const ufs   = [...document.querySelectorAll('.uf-chk:checked')].map(e => e.value);
+    const subs  = [...document.querySelectorAll('.sub-chk:checked')].map(e => e.value);
+    const ifs   = [...document.querySelectorAll('.if-chk:checked')].map(e => e.value);
+    const searchOn = document.getElementById('searchEnabled').checked;
+    const searchTerm = document.getElementById('searchSigla').value.trim().toUpperCase();
+    return { notas, quads, regs, ufs, subs, ifs, searchOn, searchTerm };
+}
+
+function filterRecords(f) {
+    return DATA.data.filter(d => {
+        if (!f.notas.includes(d.nota)) return false;
+        if (!f.quads.includes(d.quad)) return false;
+        if (!f.regs.includes(d._r)) return false;
+        if (f.ufs.length && !f.ufs.includes(d.uf)) return false;
+        if (f.searchOn && f.searchTerm && !(d.sigla || '').toUpperCase().includes(f.searchTerm)) return false;
+        return true;
+    });
+}
+
+// === PRODUCAO AGGREGATION (by filtered subtipos) ===
+function prodSum(rec, subs) {
+    const ps = rec.prod_sub || {};
+    let total=0, perm=0, colab=0, visit=0, pq=0, spq=0;
+    subs.forEach(s => {
+        const x = ps[s];
+        if (x) {
+            total += x.total || 0;
+            perm  += x.perm  || 0;
+            colab += x.colab || 0;
+            visit += x.visit || 0;
+            pq    += x.pq    || 0;
+            spq   += x.spq   || 0;
+        }
+    });
+    return { total, perm, colab, visit, pq, spq };
+}
+
+function ifSum(rec, estratos) {
+    let lo=0, mi=0, hi=0;
+    if (estratos.includes('lo')) lo = rec.if_lo || 0;
+    if (estratos.includes('mi')) mi = rec.if_mi || 0;
+    if (estratos.includes('hi')) hi = rec.if_hi || 0;
+    return { lo, mi, hi, total: lo+mi+hi };
+}
+
+function sumNum(arr, field) { return arr.reduce((s,x) => s + (x[field] || 0), 0); }
+
+function destroyCharts() {
+    Object.values(_charts).forEach(c => { try { c.destroy(); } catch(e){} });
+    _charts = {};
+}
+
+function atualizar() {
+    const f = getFilters();
+    const recs = filterRecords(f);
+    const main = document.getElementById('results');
+
+    if (recs.length === 0) {
+        main.innerHTML = '<div class="card"><h2>Nenhum dado encontrado</h2><p>Ajuste os filtros na barra lateral.</p></div>';
+        setStatus('Filtro vazio');
+        return;
+    }
+
+    // Totals
+    const totalProgramas = recs.length;
+    const totalIES = new Set(recs.map(r => r.sigla)).size;
+    const totalUFs = new Set(recs.map(r => r.uf)).size;
+    const totalDoc  = sumNum(recs, 'n_doc');
+    const totalPq   = sumNum(recs, 'n_pq');
+    const totalPerm = sumNum(recs, 'n_perm');
+    const totalColab= sumNum(recs, 'n_colab');
+    const totalVisit= sumNum(recs, 'n_visit');
+
+    let grossProd = { total:0, perm:0, colab:0, visit:0, pq:0, spq:0 };
+    recs.forEach(r => {
+        const p = prodSum(r, f.subs);
+        grossProd.total += p.total; grossProd.perm += p.perm; grossProd.colab += p.colab;
+        grossProd.visit += p.visit; grossProd.pq += p.pq; grossProd.spq += p.spq;
+    });
+
+    let ifTot = { lo:0, mi:0, hi:0, total:0 };
+    recs.forEach(r => { const x = ifSum(r, f.ifs); ifTot.lo+=x.lo; ifTot.mi+=x.mi; ifTot.hi+=x.hi; ifTot.total+=x.total; });
+
+    const pctPq = totalDoc > 0 ? (totalPq*100/totalDoc).toFixed(1) : '0';
+
+    let html = '';
+
+    // Summary
+    html += '<div class="card"><h2>Vis\u00e3o Geral</h2>';
+    html += '<div class="stats-row">';
+    html += '<div class="stat-box"><div class="value">' + totalProgramas + '</div><div class="label">Registros<br>(programa\u00d7quad)</div></div>';
+    html += '<div class="stat-box"><div class="value">' + new Set(recs.map(r => r.cd)).size + '</div><div class="label">Programas</div></div>';
+    html += '<div class="stat-box"><div class="value">' + totalIES + '</div><div class="label">IES</div></div>';
+    html += '<div class="stat-box"><div class="value">' + totalUFs + '</div><div class="label">UFs</div></div>';
+    html += '<div class="stat-box"><div class="value">' + totalDoc.toLocaleString('pt-BR') + '</div><div class="label">Docentes (total)</div></div>';
+    html += '<div class="stat-box"><div class="value">' + totalPq.toLocaleString('pt-BR') + '</div><div class="label">Pesq. PQ</div></div>';
+    html += '<div class="stat-box"><div class="value">' + pctPq + '%</div><div class="label">% com PQ</div></div>';
+    html += '<div class="stat-box"><div class="value">' + grossProd.total.toLocaleString('pt-BR') + '</div><div class="label">Produ\u00e7\u00e3o total</div></div>';
+    html += '<div class="stat-box"><div class="value">' + ifTot.total.toLocaleString('pt-BR') + '</div><div class="label">Artigos com IF</div></div>';
+    html += '</div></div>';
+
+    html += '<div class="tabs-section" id="tabsSec">';
+    html += '<div class="tab-sec active" data-sec="sec-nota" onclick="switchSection(this)">Por Nota</div>';
+    html += '<div class="tab-sec" data-sec="sec-regiao" onclick="switchSection(this)">Por Regi\u00e3o / UF</div>';
+    html += '<div class="tab-sec" data-sec="sec-quad" onclick="switchSection(this)">Por Quadri\u00eanio</div>';
+    html += '<div class="tab-sec" data-sec="sec-ies" onclick="switchSection(this)">Por IES</div>';
+    html += '<div class="tab-sec" data-sec="sec-prod" onclick="switchSection(this)">Por Produ\u00e7\u00e3o Acad\u00eamica</div>';
+    html += '</div>';
+
+    // === SECTION: POR NOTA ===
+    html += '<div class="section-panel active" id="sec-nota">';
+    html += '<div style="margin-bottom:10px;">';
+    html += '<span style="font-size:11px;font-weight:600;color:var(--txt2);margin-right:8px;">Tipo de gr\u00e1fico:</span>';
+    html += '<div class="chip-toggle">';
+    html += '<button class="active" onclick="setChartType(\'nota\',\'pie\',this)">Pizza</button>';
+    html += '<button onclick="setChartType(\'nota\',\'bar\',this)">Barras</button>';
+    html += '<button onclick="setChartType(\'nota\',\'doughnut\',this)">Rosca</button>';
+    html += '</div></div>';
+    html += '<div class="chart-row">';
+    html += '<div class="chart-half"><div class="card"><h2>Programas por Nota CAPES</h2><div class="chart-container"><canvas id="chartNotaProg"></canvas></div></div></div>';
+    html += '<div class="chart-half"><div class="card"><h2>Docentes por Nota</h2><div class="chart-container"><canvas id="chartNotaDoc"></canvas></div></div></div>';
+    html += '</div>';
+    html += '<div class="chart-row">';
+    html += '<div class="chart-half"><div class="card"><h2>Produ\u00e7\u00e3o total por Nota</h2><div class="chart-container"><canvas id="chartNotaProd"></canvas></div></div></div>';
+    html += '<div class="chart-half"><div class="card"><h2>Art/ano por docente (m\u00e9dia ponderada)</h2><div class="chart-container"><canvas id="chartNotaMaAll"></canvas></div></div></div>';
+    html += '</div>';
+    html += '<div class="card"><h2>Detalhamento por Nota</h2>';
+    html += '<table class="data-table"><thead><tr><th>Nota</th><th>Programas</th><th>IES</th><th>Docentes</th><th>PQ</th><th>%PQ</th><th>Prod. total</th><th>Prod./Doc.</th><th>IF m\u00e9dio</th></tr></thead><tbody id="tbodyNota"></tbody></table>';
+    html += '</div>';
+    html += '</div>'; // end sec-nota
+
+    // === SECTION: POR REGIAO / UF ===
+    html += '<div class="section-panel" id="sec-regiao">';
+    html += '<div style="margin-bottom:10px;">';
+    html += '<span style="font-size:11px;font-weight:600;color:var(--txt2);margin-right:8px;">Tipo de gr\u00e1fico:</span>';
+    html += '<div class="chip-toggle">';
+    html += '<button class="active" onclick="setChartType(\'reg\',\'pie\',this)">Pizza</button>';
+    html += '<button onclick="setChartType(\'reg\',\'bar\',this)">Barras</button>';
+    html += '<button onclick="setChartType(\'reg\',\'doughnut\',this)">Rosca</button>';
+    html += '</div></div>';
+    html += '<div class="chart-row">';
+    html += '<div class="chart-half"><div class="card"><h2>Programas por Regi\u00e3o</h2><div class="chart-container"><canvas id="chartRegProg"></canvas></div></div></div>';
+    html += '<div class="chart-half"><div class="card"><h2>Docentes por Regi\u00e3o</h2><div class="chart-container"><canvas id="chartRegDoc"></canvas></div></div></div>';
+    html += '</div>';
+    html += '<div class="chart-row">';
+    html += '<div class="chart-half"><div class="card"><h2>Produ\u00e7\u00e3o por Regi\u00e3o</h2><div class="chart-container"><canvas id="chartRegProd"></canvas></div></div></div>';
+    html += '<div class="chart-half"><div class="card"><h2>Programas por UF</h2><div class="chart-container"><canvas id="chartUfProg"></canvas></div></div></div>';
+    html += '</div>';
+    html += '<div class="card"><h2>Detalhamento por Regi\u00e3o</h2>';
+    html += '<table class="data-table"><thead><tr><th>Regi\u00e3o</th><th>Programas</th><th>%</th><th>IES</th><th>Docentes</th><th>PQ</th><th>Prod. total</th><th>%</th><th>IF m\u00e9dio</th></tr></thead><tbody id="tbodyReg"></tbody></table>';
+    html += '</div>';
+    html += '<div class="card"><h2>Detalhamento por UF</h2>';
+    html += '<table class="data-table"><thead><tr><th>UF</th><th>Regi\u00e3o</th><th>Programas</th><th>IES</th><th>Docentes</th><th>PQ</th><th>Prod. total</th><th>Prod./Doc.</th></tr></thead><tbody id="tbodyUf"></tbody></table>';
+    html += '</div>';
+    html += '</div>';
+
+    // === SECTION: POR QUADRIENIO ===
+    html += '<div class="section-panel" id="sec-quad">';
+    html += '<div class="chart-row">';
+    html += '<div class="chart-half"><div class="card"><h2>Programas por Quadri\u00eanio</h2><div class="chart-container"><canvas id="chartQuadProg"></canvas></div></div></div>';
+    html += '<div class="chart-half"><div class="card"><h2>Docentes por Quadri\u00eanio</h2><div class="chart-container"><canvas id="chartQuadDoc"></canvas></div></div></div>';
+    html += '</div>';
+    html += '<div class="card"><h2>Evolu\u00e7\u00e3o temporal da produ\u00e7\u00e3o (por ano)</h2>';
+    html += '<div class="chart-container" style="height:340px;"><canvas id="chartAnoProd"></canvas></div>';
+    html += '<p style="font-size:10px;color:var(--txt2);margin-top:6px;">Soma de produ\u00e7\u00e3o (todos subtipos dos registros filtrados) ao longo dos 12 anos (2013\u20132024).</p></div>';
+    html += '<div class="card"><h2>Detalhamento por Quadri\u00eanio</h2>';
+    html += '<table class="data-table"><thead><tr><th>Quadri\u00eanio</th><th>Programas</th><th>IES</th><th>Docentes</th><th>PQ</th><th>Prod. total</th><th>Prod./Doc.</th><th>IF m\u00e9dio</th></tr></thead><tbody id="tbodyQuad"></tbody></table>';
+    html += '</div>';
+    html += '</div>';
+
+    // === SECTION: POR IES ===
+    html += '<div class="section-panel" id="sec-ies">';
+    html += '<div class="card"><h2>Top 30 IES por n\u00famero de programas</h2><div class="chart-container" style="height:500px;"><canvas id="chartIesProg"></canvas></div></div>';
+    html += '<div class="card"><h2>Top 30 IES por produ\u00e7\u00e3o total</h2><div class="chart-container" style="height:500px;"><canvas id="chartIesProd"></canvas></div></div>';
+    html += '<div class="card"><h2>Top 30 IES por art/ano por docente (ma_all, m\u00e9dia ponderada)</h2><div class="chart-container" style="height:500px;"><canvas id="chartIesMa"></canvas></div></div>';
+    html += '<div class="card"><h2>Detalhamento por IES (Top 50 por produ\u00e7\u00e3o)</h2>';
+    html += '<table class="data-table"><thead><tr><th>#</th><th>Sigla</th><th>UFs</th><th>Programas</th><th>Docentes</th><th>PQ</th><th>Prod. total</th><th>Prod./Doc.</th><th>IF m\u00e9dio</th></tr></thead><tbody id="tbodyIes"></tbody></table>';
+    html += '</div>';
+    html += '</div>';
+
+    // === SECTION: POR PRODUCAO ACADEMICA ===
+    html += '<div class="section-panel" id="sec-prod">';
+    html += '<div class="card"><h2>Decomposi\u00e7\u00f5es da Produ\u00e7\u00e3o Acad\u00eamica</h2>';
+    html += '<p style="font-size:11px;color:var(--txt2);margin-bottom:6px;">An\u00e1lises focadas em <strong>produ\u00e7\u00e3o por pesquisador</strong> sob diferentes aspectos: por subtipo bibliogr\u00e1fico, v\u00ednculo do docente (permanente/colaborador/visitante), posse de bolsa PQ e estrato de fator de impacto.</p></div>';
+
+    // Row 1: subtipo
+    html += '<div style="margin-bottom:10px;">';
+    html += '<span style="font-size:11px;font-weight:600;color:var(--txt2);margin-right:8px;">Gr\u00e1fico subtipo:</span>';
+    html += '<div class="chip-toggle">';
+    html += '<button class="active" onclick="setChartType(\'sub\',\'pie\',this)">Pizza</button>';
+    html += '<button onclick="setChartType(\'sub\',\'bar\',this)">Barras</button>';
+    html += '<button onclick="setChartType(\'sub\',\'doughnut\',this)">Rosca</button>';
+    html += '</div></div>';
+    html += '<div class="chart-row">';
+    html += '<div class="chart-half"><div class="card"><h2>Produ\u00e7\u00e3o por Subtipo Bibliogr\u00e1fico</h2><div class="chart-container"><canvas id="chartSubProd"></canvas></div></div></div>';
+    html += '<div class="chart-half"><div class="card"><h2>Produ\u00e7\u00e3o por V\u00ednculo do Docente</h2><div class="chart-container"><canvas id="chartVinProd"></canvas></div></div></div>';
+    html += '</div>';
+
+    html += '<div class="chart-row">';
+    html += '<div class="chart-half"><div class="card"><h2>Produ\u00e7\u00e3o: Bolsistas PQ vs Sem PQ</h2><div class="chart-container"><canvas id="chartBolsaProd"></canvas></div></div></div>';
+    html += '<div class="chart-half"><div class="card"><h2>Artigos por Estrato de Fator de Impacto</h2><div class="chart-container"><canvas id="chartIfStrata"></canvas></div></div></div>';
+    html += '</div>';
+
+    html += '<div class="card"><h2>Art/ano por docente &#8212; m\u00e9dia ponderada por categoria</h2>';
+    html += '<div class="chart-container" style="height:340px;"><canvas id="chartMediasCat"></canvas></div>';
+    html += '<p style="font-size:10px;color:var(--txt2);margin-top:6px;">M\u00e9dia ponderada pelo n\u00famero de docentes em cada categoria (permanentes, colaboradores, visitantes, bolsistas PQ, sem PQ, todos).</p></div>';
+
+    html += '<div class="card"><h2>Produ\u00e7\u00e3o detalhada por subtipo</h2>';
+    html += '<table class="data-table"><thead><tr><th>Subtipo</th><th>Total</th><th>%</th><th>Permanente</th><th>Colaborador</th><th>Visitante</th><th>PQ</th><th>Sem PQ</th></tr></thead><tbody id="tbodySub"></tbody></table>';
+    html += '</div>';
+
+    html += '<div class="card"><h2>Produ\u00e7\u00e3o por pesquisador (art/ano) &#8212; top 30 programas</h2>';
+    html += '<p style="font-size:11px;color:var(--txt2);margin-bottom:6px;">Baseado no campo <code>ma_all</code> (art/ano por docente, todas categorias).</p>';
+    html += '<table class="data-table"><thead><tr><th>#</th><th>Programa</th><th>Sigla</th><th>UF</th><th>Nota</th><th>Quad</th><th>Docentes</th><th>ma_all</th><th>ma_pq</th><th>ma_perm</th><th>IF m\u00e9d.</th></tr></thead><tbody id="tbodyProg"></tbody></table>';
+    html += '</div>';
+
+    html += '</div>'; // end sec-prod
+
+    main.innerHTML = html;
+    setTimeout(function() { renderAll(recs, f); }, 30);
+    setStatus(totalProgramas + ' registros | ' + totalDoc.toLocaleString('pt-BR') + ' docentes | ' + grossProd.total.toLocaleString('pt-BR') + ' prod.');
+}
+
+function switchSection(el) {
+    document.querySelectorAll('.tab-sec').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.section-panel').forEach(s => s.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById(el.dataset.sec).classList.add('active');
+}
+
+function setChartType(group, type, btn) {
+    _chartTypes[group] = type;
+    btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const f = getFilters();
+    const recs = filterRecords(f);
+    if (group === 'nota') renderNotaCharts(recs, f);
+    if (group === 'reg')  renderRegCharts(recs, f);
+    if (group === 'sub')  renderSubCharts(recs, f);
+    if (group === 'vin')  renderProdExtra(recs, f);
+    if (group === 'bolsa')renderProdExtra(recs, f);
+    if (group === 'if')   renderProdExtra(recs, f);
+}
+
+function renderAll(recs, f) {
+    destroyCharts();
+    renderNotaCharts(recs, f);
+    renderRegCharts(recs, f);
+    renderQuadCharts(recs, f);
+    renderIesCharts(recs, f);
+    renderSubCharts(recs, f);
+    renderProdExtra(recs, f);
+    renderTables(recs, f);
+}
+
+function tooltipPctCb() {
+    return { callbacks: { label: function(ctx) {
+        let val = ctx.parsed !== undefined ? (typeof ctx.parsed === 'object' ? (ctx.parsed.y !== undefined ? ctx.parsed.y : ctx.parsed) : ctx.parsed) : ctx.raw;
+        if (typeof val !== 'number') val = Number(val) || 0;
+        const total = ctx.dataset.data.reduce((a,b) => a + (Number(b)||0), 0);
+        const pct = total > 0 ? (val * 100 / total).toFixed(1) : '0';
+        return ctx.label + ': ' + val.toLocaleString('pt-BR') + ' (' + pct + '%)';
+    }}};
+}
+
+// === NOTA ===
+function renderNotaCharts(recs, f) {
+    ['notaProg','notaDoc','notaProd','notaMaAll'].forEach(k => { if (_charts[k]) { try { _charts[k].destroy(); } catch(e){} delete _charts[k]; } });
+    const type = _chartTypes.nota, isPie = type==='pie' || type==='doughnut';
+
+    const byNota = {};
+    NOTAS_ALL.forEach(n => byNota[n] = { prog:0, doc:0, pq:0, prod:0, if_sum:0, if_n:0, ies:new Set(), sumMaW:0, sumW:0 });
+    recs.forEach(r => {
+        const n = r.nota;
+        if (!byNota[n]) byNota[n] = { prog:0, doc:0, pq:0, prod:0, if_sum:0, if_n:0, ies:new Set(), sumMaW:0, sumW:0 };
+        byNota[n].prog++;
+        byNota[n].doc += (r.n_doc || 0);
+        byNota[n].pq  += (r.n_pq  || 0);
+        const p = prodSum(r, f.subs); byNota[n].prod += p.total;
+        if (r.avg_if && r.n_if) { byNota[n].if_sum += r.avg_if * r.n_if; byNota[n].if_n += r.n_if; }
+        byNota[n].ies.add(r.sigla);
+        byNota[n].sumMaW += (r.ma_all || 0) * (r.n_doc || 0);
+        byNota[n].sumW   += (r.n_doc || 0);
+    });
+    const notas = NOTAS_ALL.filter(n => byNota[n].prog > 0);
+    const labels = notas.map(n => 'Nota ' + n);
+    const cores = notas.map(n => NOTA_CORES[n] || '#888');
+
+    const mkChart = (id, data) => {
+        const el = document.getElementById(id); if (!el) return;
+        _charts[id] = new Chart(el, {
+            type: type,
+            data: { labels, datasets: [{ data, backgroundColor: cores }] },
+            options: { responsive:true, maintainAspectRatio:false,
+                plugins: { legend:{ display:isPie, position:'right' }, tooltip: tooltipPctCb() },
+                scales: isPie ? {} : { y:{ beginAtZero:true } }
+            }
+        });
+    };
+    mkChart('chartNotaProg', notas.map(n => byNota[n].prog));
+    mkChart('chartNotaDoc',  notas.map(n => byNota[n].doc));
+    mkChart('chartNotaProd', notas.map(n => byNota[n].prod));
+
+    // ma_all average bar
+    const el = document.getElementById('chartNotaMaAll');
+    if (el) {
+        const vals = notas.map(n => byNota[n].sumW > 0 ? +(byNota[n].sumMaW / byNota[n].sumW).toFixed(2) : 0);
+        _charts.notaMaAll = new Chart(el, {
+            type: 'bar',
+            data: { labels, datasets: [{ data: vals, backgroundColor: cores }] },
+            options: { responsive:true, maintainAspectRatio:false,
+                plugins: { legend:{ display:false },
+                    tooltip: { callbacks: { label: function(ctx) { return ctx.label + ': ' + ctx.raw + ' art/ano/doc'; } } } },
+                scales: { y: { beginAtZero:true, title:{ display:true, text:'art/ano por docente' } } }
+            }
+        });
+    }
+
+    // Table
+    const tb = document.getElementById('tbodyNota');
+    if (tb) {
+        const totalProg = recs.length;
+        tb.innerHTML = notas.map(n => {
+            const d = byNota[n];
+            const pctPq = d.doc > 0 ? (d.pq*100/d.doc).toFixed(1) : '0';
+            const prodDoc = d.doc > 0 ? (d.prod/d.doc).toFixed(2) : '-';
+            const ifAvg = d.if_n > 0 ? (d.if_sum/d.if_n).toFixed(2) : '-';
+            return '<tr><td><strong>Nota ' + n + '</strong></td><td>' + d.prog + '</td><td>' + d.ies.size + '</td><td>' + d.doc.toLocaleString('pt-BR') + '</td><td>' + d.pq.toLocaleString('pt-BR') + '</td><td>' + pctPq + '%</td><td>' + d.prod.toLocaleString('pt-BR') + '</td><td>' + prodDoc + '</td><td>' + ifAvg + '</td></tr>';
+        }).join('');
+    }
+}
+
+// === REGIAO / UF ===
+function renderRegCharts(recs, f) {
+    ['regProg','regDoc','regProd','ufProg'].forEach(k => { if (_charts[k]) { try { _charts[k].destroy(); } catch(e){} delete _charts[k]; } });
+    const type = _chartTypes.reg, isPie = type==='pie' || type==='doughnut';
+
+    const byReg = {}; ['N','NE','CO','SE','S'].forEach(r => byReg[r] = { prog:0, doc:0, pq:0, prod:0, ies:new Set(), if_sum:0, if_n:0 });
+    recs.forEach(r => {
+        const reg = r._r; if (!byReg[reg]) return;
+        byReg[reg].prog++;
+        byReg[reg].doc += (r.n_doc || 0);
+        byReg[reg].pq  += (r.n_pq  || 0);
+        const p = prodSum(r, f.subs); byReg[reg].prod += p.total;
+        byReg[reg].ies.add(r.sigla);
+        if (r.avg_if && r.n_if) { byReg[reg].if_sum += r.avg_if * r.n_if; byReg[reg].if_n += r.n_if; }
+    });
+    const regs = ['N','NE','CO','SE','S'].filter(r => byReg[r].prog > 0);
+    const labels = regs.map(r => REGIAO_LABELS[r]);
+    const cores = regs.map(r => REGIAO_CORES[r]);
+
+    const mkChart = (id, data) => {
+        const el = document.getElementById(id); if (!el) return;
+        _charts[id] = new Chart(el, {
+            type: type,
+            data: { labels, datasets: [{ data, backgroundColor: cores }] },
+            options: { responsive:true, maintainAspectRatio:false,
+                plugins: { legend:{ display:isPie, position:'right' }, tooltip: tooltipPctCb() },
+                scales: isPie ? {} : { y:{ beginAtZero:true } }
+            }
+        });
+    };
+    mkChart('chartRegProg', regs.map(r => byReg[r].prog));
+    mkChart('chartRegDoc',  regs.map(r => byReg[r].doc));
+    mkChart('chartRegProd', regs.map(r => byReg[r].prod));
+
+    // UF bar chart
+    const byUf = {};
+    recs.forEach(r => {
+        if (!byUf[r.uf]) byUf[r.uf] = { prog:0, doc:0, pq:0, prod:0, ies:new Set() };
+        byUf[r.uf].prog++;
+        byUf[r.uf].doc += (r.n_doc || 0);
+        byUf[r.uf].pq  += (r.n_pq  || 0);
+        const p = prodSum(r, f.subs); byUf[r.uf].prod += p.total;
+        byUf[r.uf].ies.add(r.sigla);
+    });
+    const ufEntries = Object.entries(byUf).sort((a,b) => b[1].prog - a[1].prog);
+    const el = document.getElementById('chartUfProg');
+    if (el) {
+        _charts.ufProg = new Chart(el, {
+            type: 'bar',
+            data: { labels: ufEntries.map(e => e[0]),
+                datasets: [{ data: ufEntries.map(e => e[1].prog),
+                    backgroundColor: ufEntries.map(e => REGIAO_CORES[UF_REGIAO[e[0]]] || '#95A5A6') }] },
+            options: { responsive:true, maintainAspectRatio:false,
+                plugins: { legend:{ display:false },
+                    tooltip: { callbacks: { label: function(ctx) { const e = ufEntries[ctx.dataIndex]; return [e[0] + ': ' + e[1].prog + ' programas', 'Docentes: ' + e[1].doc.toLocaleString('pt-BR'), 'Produ\u00e7\u00e3o: ' + e[1].prod.toLocaleString('pt-BR'), 'Regi\u00e3o: ' + REGIAO_LABELS[UF_REGIAO[e[0]]]]; } } } },
+                scales: { y:{ beginAtZero:true } }
+            }
+        });
+    }
+
+    // Tables
+    const tbReg = document.getElementById('tbodyReg');
+    if (tbReg) {
+        const totalProg = recs.length, totalProd = regs.reduce((s,r) => s + byReg[r].prod, 0);
+        tbReg.innerHTML = regs.map(r => {
+            const d = byReg[r];
+            const ifAvg = d.if_n > 0 ? (d.if_sum/d.if_n).toFixed(2) : '-';
+            return '<tr><td><strong>' + REGIAO_LABELS[r] + '</strong></td><td>' + d.prog + '</td><td>' + (totalProg > 0 ? (d.prog*100/totalProg).toFixed(1) : 0) + '%</td><td>' + d.ies.size + '</td><td>' + d.doc.toLocaleString('pt-BR') + '</td><td>' + d.pq.toLocaleString('pt-BR') + '</td><td>' + d.prod.toLocaleString('pt-BR') + '</td><td>' + (totalProd > 0 ? (d.prod*100/totalProd).toFixed(1) : 0) + '%</td><td>' + ifAvg + '</td></tr>';
+        }).join('');
+    }
+    const tbUf = document.getElementById('tbodyUf');
+    if (tbUf) {
+        tbUf.innerHTML = ufEntries.map(e => {
+            const u = e[0], d = e[1];
+            const pd = d.doc > 0 ? (d.prod/d.doc).toFixed(2) : '-';
+            return '<tr><td><strong>' + u + '</strong></td><td>' + REGIAO_LABELS[UF_REGIAO[u]] + '</td><td>' + d.prog + '</td><td>' + d.ies.size + '</td><td>' + d.doc.toLocaleString('pt-BR') + '</td><td>' + d.pq.toLocaleString('pt-BR') + '</td><td>' + d.prod.toLocaleString('pt-BR') + '</td><td>' + pd + '</td></tr>';
+        }).join('');
+    }
+}
+
+// === QUADRIENIO ===
+function renderQuadCharts(recs, f) {
+    ['quadProg','quadDoc','anoProd'].forEach(k => { if (_charts[k]) { try { _charts[k].destroy(); } catch(e){} delete _charts[k]; } });
+
+    const byQ = {};
+    QUAD_ALL.forEach(q => byQ[q] = { prog:0, doc:0, pq:0, prod:0, ies:new Set(), if_sum:0, if_n:0 });
+    recs.forEach(r => {
+        const q = r.quad; if (!byQ[q]) return;
+        byQ[q].prog++;
+        byQ[q].doc += (r.n_doc || 0);
+        byQ[q].pq  += (r.n_pq  || 0);
+        const p = prodSum(r, f.subs); byQ[q].prod += p.total;
+        byQ[q].ies.add(r.sigla);
+        if (r.avg_if && r.n_if) { byQ[q].if_sum += r.avg_if * r.n_if; byQ[q].if_n += r.n_if; }
+    });
+    const quads = QUAD_ALL.filter(q => byQ[q].prog > 0);
+    const cores = quads.map(q => QUAD_CORES[q]);
+
+    const elP = document.getElementById('chartQuadProg');
+    if (elP) {
+        _charts.quadProg = new Chart(elP, {
+            type: 'bar',
+            data: { labels: quads, datasets: [{ data: quads.map(q => byQ[q].prog), backgroundColor: cores }] },
+            options: { responsive:true, maintainAspectRatio:false,
+                plugins: { legend:{ display:false },
+                    tooltip: { callbacks: { label: function(ctx) { const q = quads[ctx.dataIndex], d = byQ[q]; return ['Programas: ' + d.prog, 'IES: ' + d.ies.size]; } } } },
+                scales: { y:{ beginAtZero:true } }
+            }
+        });
+    }
+    const elD = document.getElementById('chartQuadDoc');
+    if (elD) {
+        _charts.quadDoc = new Chart(elD, {
+            type: 'bar',
+            data: { labels: quads,
+                datasets: [
+                    { label:'Docentes', data: quads.map(q => byQ[q].doc), backgroundColor:'#2196F3' },
+                    { label:'Bolsistas PQ', data: quads.map(q => byQ[q].pq), backgroundColor:'#E91E63' }
+                ] },
+            options: { responsive:true, maintainAspectRatio:false,
+                plugins: { legend:{ display:true } },
+                scales: { y:{ beginAtZero:true } }
+            }
+        });
+    }
+
+    // Year-by-year production line (sum across filtered records using prod_ano[year][3] = total count)
+    const elA = document.getElementById('chartAnoProd');
+    if (elA) {
+        const years = []; for (let y=2013; y<=2024; y++) years.push(y);
+        const sumsAll = years.map(y => 0);
+        const sumsDoc = years.map(y => 0);
+        recs.forEach(r => {
+            const pa = r.prod_ano || {};
+            years.forEach((y, i) => {
+                const x = pa[String(y)] || pa[y];
+                if (x) { sumsAll[i] += (x[3] || 0); sumsDoc[i] += (r.n_doc || 0); }
+            });
+        });
+        _charts.anoProd = new Chart(elA, {
+            type: 'line',
+            data: { labels: years,
+                datasets: [{
+                    label: 'Produ\u00e7\u00e3o total (todos subtipos)',
+                    data: sumsAll,
+                    borderColor: '#6A1B9A', backgroundColor: 'rgba(106,27,154,0.15)',
+                    fill: true, tension: 0.2, pointRadius: 5
+                }] },
+            options: { responsive:true, maintainAspectRatio:false,
+                plugins: { legend:{ display:true },
+                    tooltip: { callbacks: { label: function(ctx) { return 'Ano ' + ctx.label + ': ' + ctx.raw.toLocaleString('pt-BR') + ' publica\u00e7\u00f5es'; } } } },
+                scales: { y:{ beginAtZero:true, title:{ display:true, text:'Publica\u00e7\u00f5es (soma)' } } }
+            }
+        });
+    }
+
+    // Table
+    const tb = document.getElementById('tbodyQuad');
+    if (tb) {
+        tb.innerHTML = quads.map(q => {
+            const d = byQ[q];
+            const pd = d.doc > 0 ? (d.prod/d.doc).toFixed(2) : '-';
+            const ifAvg = d.if_n > 0 ? (d.if_sum/d.if_n).toFixed(2) : '-';
+            return '<tr><td><strong>' + q + '</strong></td><td>' + d.prog + '</td><td>' + d.ies.size + '</td><td>' + d.doc.toLocaleString('pt-BR') + '</td><td>' + d.pq.toLocaleString('pt-BR') + '</td><td>' + d.prod.toLocaleString('pt-BR') + '</td><td>' + pd + '</td><td>' + ifAvg + '</td></tr>';
+        }).join('');
+    }
+}
+
+// === IES ===
+function renderIesCharts(recs, f) {
+    ['iesProg','iesProd','iesMa'].forEach(k => { if (_charts[k]) { try { _charts[k].destroy(); } catch(e){} delete _charts[k]; } });
+
+    const byI = {};
+    recs.forEach(r => {
+        const sg = r.sigla || '?';
+        if (!byI[sg]) byI[sg] = { prog:0, doc:0, pq:0, prod:0, ufs:new Set(), if_sum:0, if_n:0, sumMaW:0, sumW:0, is_unb: !!r.is_unb };
+        byI[sg].prog++;
+        byI[sg].doc += (r.n_doc || 0);
+        byI[sg].pq  += (r.n_pq  || 0);
+        const p = prodSum(r, f.subs); byI[sg].prod += p.total;
+        byI[sg].ufs.add(r.uf);
+        if (r.avg_if && r.n_if) { byI[sg].if_sum += r.avg_if * r.n_if; byI[sg].if_n += r.n_if; }
+        byI[sg].sumMaW += (r.ma_all || 0) * (r.n_doc || 0);
+        byI[sg].sumW   += (r.n_doc || 0);
+    });
+    const iesList = Object.entries(byI).map(e => ({
+        sg: e[0], prog: e[1].prog, doc: e[1].doc, pq: e[1].pq, prod: e[1].prod,
+        ufs: [...e[1].ufs], if_sum: e[1].if_sum, if_n: e[1].if_n,
+        ma_all: e[1].sumW > 0 ? e[1].sumMaW / e[1].sumW : 0,
+        is_unb: e[1].is_unb
+    }));
+
+    // Top 30 by prog
+    const topProg = iesList.slice().sort((a,b) => b.prog - a.prog).slice(0, 30);
+    const elP = document.getElementById('chartIesProg');
+    if (elP) {
+        _charts.iesProg = new Chart(elP, {
+            type: 'bar',
+            data: { labels: topProg.map(p => p.is_unb ? '\u2605 ' + p.sg : p.sg),
+                datasets: [{ data: topProg.map(p => p.prog),
+                    backgroundColor: topProg.map(p => p.is_unb ? UNB_COLOR : '#6A1B9A') }] },
+            options: { indexAxis:'y', responsive:true, maintainAspectRatio:false,
+                plugins: { legend:{ display:false },
+                    tooltip: { callbacks: { label: function(ctx) { const p = topProg[ctx.dataIndex]; return [p.sg + ': ' + p.prog + ' programas', 'Docentes: ' + p.doc.toLocaleString('pt-BR'), 'UFs: ' + p.ufs.join(', ')]; } } } },
+                scales: { x:{ beginAtZero:true } }
+            }
+        });
+    }
+
+    // Top 30 by prod
+    const topProd = iesList.slice().sort((a,b) => b.prod - a.prod).slice(0, 30);
+    const elPr = document.getElementById('chartIesProd');
+    if (elPr) {
+        _charts.iesProd = new Chart(elPr, {
+            type: 'bar',
+            data: { labels: topProd.map(p => p.is_unb ? '\u2605 ' + p.sg : p.sg),
+                datasets: [{ data: topProd.map(p => p.prod),
+                    backgroundColor: topProd.map(p => p.is_unb ? UNB_COLOR : '#2196F3') }] },
+            options: { indexAxis:'y', responsive:true, maintainAspectRatio:false,
+                plugins: { legend:{ display:false },
+                    tooltip: { callbacks: { label: function(ctx) { const p = topProd[ctx.dataIndex]; const pd = p.doc > 0 ? (p.prod/p.doc).toFixed(2) : '-'; return [p.sg + ': ' + p.prod.toLocaleString('pt-BR') + ' pub.', 'Prod./Doc.: ' + pd, 'Programas: ' + p.prog]; } } } },
+                scales: { x:{ beginAtZero:true } }
+            }
+        });
+    }
+
+    // Top 30 by ma_all
+    const topMa = iesList.filter(p => p.ma_all > 0).slice().sort((a,b) => b.ma_all - a.ma_all).slice(0, 30);
+    const elM = document.getElementById('chartIesMa');
+    if (elM) {
+        _charts.iesMa = new Chart(elM, {
+            type: 'bar',
+            data: { labels: topMa.map(p => p.is_unb ? '\u2605 ' + p.sg : p.sg),
+                datasets: [{ data: topMa.map(p => +p.ma_all.toFixed(2)),
+                    backgroundColor: topMa.map(p => p.is_unb ? UNB_COLOR : '#4CAF50') }] },
+            options: { indexAxis:'y', responsive:true, maintainAspectRatio:false,
+                plugins: { legend:{ display:false },
+                    tooltip: { callbacks: { label: function(ctx) { const p = topMa[ctx.dataIndex]; return [p.sg + ': ' + p.ma_all.toFixed(2) + ' art/ano/doc', 'Docentes: ' + p.doc.toLocaleString('pt-BR'), 'Prod. total: ' + p.prod.toLocaleString('pt-BR')]; } } } },
+                scales: { x:{ beginAtZero:true } }
+            }
+        });
+    }
+
+    // Table Top 50 by prod
+    const tb = document.getElementById('tbodyIes');
+    if (tb) {
+        const top50 = iesList.slice().sort((a,b) => b.prod - a.prod).slice(0, 50);
+        tb.innerHTML = top50.map((p, i) => {
+            const pd = p.doc > 0 ? (p.prod/p.doc).toFixed(2) : '-';
+            const ifAvg = p.if_n > 0 ? (p.if_sum/p.if_n).toFixed(2) : '-';
+            const star = p.is_unb ? '\u2605 ' : '';
+            return '<tr><td>' + (i+1) + '</td><td><strong>' + star + p.sg + '</strong></td><td>' + p.ufs.join(', ') + '</td><td>' + p.prog + '</td><td>' + p.doc.toLocaleString('pt-BR') + '</td><td>' + p.pq.toLocaleString('pt-BR') + '</td><td>' + p.prod.toLocaleString('pt-BR') + '</td><td>' + pd + '</td><td>' + ifAvg + '</td></tr>';
+        }).join('');
+    }
+}
+
+// === SUBTIPO ===
+function renderSubCharts(recs, f) {
+    ['subProd'].forEach(k => { if (_charts[k]) { try { _charts[k].destroy(); } catch(e){} delete _charts[k]; } });
+    const type = _chartTypes.sub, isPie = type==='pie' || type==='doughnut';
+
+    const bySub = {};
+    SUB_ORDER.forEach(s => bySub[s] = 0);
+    recs.forEach(r => {
+        const ps = r.prod_sub || {};
+        f.subs.forEach(s => { if (ps[s]) bySub[s] += (ps[s].total || 0); });
+    });
+    const subs = f.subs.slice().filter(s => bySub[s] > 0);
+    const labels = subs.map(s => SUB_LABELS[s] || s);
+    const cores  = subs.map(s => SUB_CORES[SUB_ORDER.indexOf(s)] || '#888');
+
+    const el = document.getElementById('chartSubProd');
+    if (el) {
+        _charts.subProd = new Chart(el, {
+            type: type,
+            data: { labels, datasets: [{ data: subs.map(s => bySub[s]), backgroundColor: cores }] },
+            options: { responsive:true, maintainAspectRatio:false,
+                plugins: { legend:{ display:isPie, position:'right' }, tooltip: tooltipPctCb() },
+                scales: isPie ? {} : { y:{ beginAtZero:true } }
+            }
+        });
+    }
+
+    // Sub table
+    const tb = document.getElementById('tbodySub');
+    if (tb) {
+        let totals = { total:0, perm:0, colab:0, visit:0, pq:0, spq:0 };
+        const bySubDet = {};
+        SUB_ORDER.forEach(s => bySubDet[s] = { total:0, perm:0, colab:0, visit:0, pq:0, spq:0 });
+        recs.forEach(r => {
+            const ps = r.prod_sub || {};
+            SUB_ORDER.forEach(s => {
+                if (ps[s] && f.subs.includes(s)) {
+                    const x = ps[s];
+                    bySubDet[s].total += x.total||0;
+                    bySubDet[s].perm  += x.perm||0;
+                    bySubDet[s].colab += x.colab||0;
+                    bySubDet[s].visit += x.visit||0;
+                    bySubDet[s].pq    += x.pq||0;
+                    bySubDet[s].spq   += x.spq||0;
+                }
+            });
+        });
+        SUB_ORDER.forEach(s => {
+            if (!f.subs.includes(s)) return;
+            const d = bySubDet[s];
+            totals.total += d.total; totals.perm += d.perm; totals.colab += d.colab;
+            totals.visit += d.visit; totals.pq += d.pq; totals.spq += d.spq;
+        });
+        tb.innerHTML = SUB_ORDER.filter(s => f.subs.includes(s)).map(s => {
+            const d = bySubDet[s];
+            const pct = totals.total > 0 ? (d.total*100/totals.total).toFixed(1) : '0';
+            return '<tr><td><strong>' + SUB_LABELS[s] + '</strong></td><td>' + d.total.toLocaleString('pt-BR') + '</td><td>' + pct + '%</td><td>' + d.perm.toLocaleString('pt-BR') + '</td><td>' + d.colab.toLocaleString('pt-BR') + '</td><td>' + d.visit.toLocaleString('pt-BR') + '</td><td>' + d.pq.toLocaleString('pt-BR') + '</td><td>' + d.spq.toLocaleString('pt-BR') + '</td></tr>';
+        }).join('') + '<tr style="font-weight:700;background:#F3E5F5;"><td>TOTAL</td><td>' + totals.total.toLocaleString('pt-BR') + '</td><td>100%</td><td>' + totals.perm.toLocaleString('pt-BR') + '</td><td>' + totals.colab.toLocaleString('pt-BR') + '</td><td>' + totals.visit.toLocaleString('pt-BR') + '</td><td>' + totals.pq.toLocaleString('pt-BR') + '</td><td>' + totals.spq.toLocaleString('pt-BR') + '</td></tr>';
+    }
+}
+
+// === PRODUCAO EXTRA (vin, bolsa, if, medias, programas) ===
+function renderProdExtra(recs, f) {
+    ['vinProd','bolsaProd','ifStrata','mediasCat'].forEach(k => { if (_charts[k]) { try { _charts[k].destroy(); } catch(e){} delete _charts[k]; } });
+
+    // Vinculo
+    let vPerm=0, vColab=0, vVisit=0;
+    recs.forEach(r => { const p = prodSum(r, f.subs); vPerm += p.perm; vColab += p.colab; vVisit += p.visit; });
+    const vinType = _chartTypes.vin, vinPie = vinType==='pie' || vinType==='doughnut';
+    const elV = document.getElementById('chartVinProd');
+    if (elV) {
+        _charts.vinProd = new Chart(elV, {
+            type: vinType,
+            data: { labels: ['Permanente','Colaborador','Visitante'],
+                datasets: [{ data: [vPerm, vColab, vVisit], backgroundColor: [VIN_CORES.perm, VIN_CORES.colab, VIN_CORES.visit] }] },
+            options: { responsive:true, maintainAspectRatio:false,
+                plugins: { legend:{ display:vinPie, position:'right' }, tooltip: tooltipPctCb() },
+                scales: vinPie ? {} : { y:{ beginAtZero:true } }
+            }
+        });
+    }
+
+    // Bolsa PQ
+    let bPq=0, bSpq=0;
+    recs.forEach(r => { const p = prodSum(r, f.subs); bPq += p.pq; bSpq += p.spq; });
+    const bType = _chartTypes.bolsa, bPie = bType==='pie' || bType==='doughnut';
+    const elB = document.getElementById('chartBolsaProd');
+    if (elB) {
+        _charts.bolsaProd = new Chart(elB, {
+            type: bType,
+            data: { labels: ['Bolsistas PQ','Sem PQ'],
+                datasets: [{ data: [bPq, bSpq], backgroundColor: [BOLSA_CORES.pq, BOLSA_CORES.spq] }] },
+            options: { responsive:true, maintainAspectRatio:false,
+                plugins: { legend:{ display:bPie, position:'right' }, tooltip: tooltipPctCb() },
+                scales: bPie ? {} : { y:{ beginAtZero:true } }
+            }
+        });
+    }
+
+    // IF strata (only includes strata currently selected in filter)
+    let iLo=0, iMi=0, iHi=0;
+    recs.forEach(r => { const x = ifSum(r, f.ifs); iLo += x.lo; iMi += x.mi; iHi += x.hi; });
+    const iType = _chartTypes.if, iPie = iType==='pie' || iType==='doughnut';
+    const elI = document.getElementById('chartIfStrata');
+    if (elI) {
+        const strataLabels = [], strataData = [], strataCores = [];
+        if (f.ifs.includes('lo')) { strataLabels.push(IF_LABELS.lo); strataData.push(iLo); strataCores.push(IF_CORES.lo); }
+        if (f.ifs.includes('mi')) { strataLabels.push(IF_LABELS.mi); strataData.push(iMi); strataCores.push(IF_CORES.mi); }
+        if (f.ifs.includes('hi')) { strataLabels.push(IF_LABELS.hi); strataData.push(iHi); strataCores.push(IF_CORES.hi); }
+        _charts.ifStrata = new Chart(elI, {
+            type: iType,
+            data: { labels: strataLabels, datasets: [{ data: strataData, backgroundColor: strataCores }] },
+            options: { responsive:true, maintainAspectRatio:false,
+                plugins: { legend:{ display:iPie, position:'right' }, tooltip: tooltipPctCb() },
+                scales: iPie ? {} : { y:{ beginAtZero:true } }
+            }
+        });
+    }
+
+    // Medias por categoria (weighted averages)
+    const sumMaPerm = recs.reduce((s,r) => s + (r.ma_perm||0) * (r.n_perm||0), 0);
+    const sumNPerm  = recs.reduce((s,r) => s + (r.n_perm||0), 0);
+    const sumMaColab= recs.reduce((s,r) => s + (r.ma_colab||0) * (r.n_colab||0), 0);
+    const sumNColab = recs.reduce((s,r) => s + (r.n_colab||0), 0);
+    const sumMaVisit= recs.reduce((s,r) => s + (r.ma_visit||0) * (r.n_visit||0), 0);
+    const sumNVisit = recs.reduce((s,r) => s + (r.n_visit||0), 0);
+    const sumMaPq   = recs.reduce((s,r) => s + (r.ma_pq||0) * (r.n_pq||0), 0);
+    const sumNPq    = recs.reduce((s,r) => s + (r.n_pq||0), 0);
+    const sumMaSpq  = recs.reduce((s,r) => s + (r.ma_spq||0) * (r.n_spq||0), 0);
+    const sumNSpq   = recs.reduce((s,r) => s + (r.n_spq||0), 0);
+    const sumMaAll  = recs.reduce((s,r) => s + (r.ma_all||0) * (r.n_doc||0), 0);
+    const sumNAll   = recs.reduce((s,r) => s + (r.n_doc||0), 0);
+    const maPerm  = sumNPerm  > 0 ? sumMaPerm / sumNPerm   : 0;
+    const maColab = sumNColab > 0 ? sumMaColab/ sumNColab  : 0;
+    const maVisit = sumNVisit > 0 ? sumMaVisit/ sumNVisit  : 0;
+    const maPq    = sumNPq    > 0 ? sumMaPq   / sumNPq     : 0;
+    const maSpq   = sumNSpq   > 0 ? sumMaSpq  / sumNSpq    : 0;
+    const maAll   = sumNAll   > 0 ? sumMaAll  / sumNAll    : 0;
+
+    const elM = document.getElementById('chartMediasCat');
+    if (elM) {
+        _charts.mediasCat = new Chart(elM, {
+            type: 'bar',
+            data: { labels: ['Permanente','Colaborador','Visitante','Bolsista PQ','Sem PQ','Todos'],
+                datasets: [{ data: [+maPerm.toFixed(2), +maColab.toFixed(2), +maVisit.toFixed(2), +maPq.toFixed(2), +maSpq.toFixed(2), +maAll.toFixed(2)],
+                    backgroundColor: [VIN_CORES.perm, VIN_CORES.colab, VIN_CORES.visit, BOLSA_CORES.pq, BOLSA_CORES.spq, '#6A1B9A'] }] },
+            options: { responsive:true, maintainAspectRatio:false,
+                plugins: { legend:{ display:false },
+                    tooltip: { callbacks: { label: function(ctx) { return ctx.label + ': ' + ctx.raw + ' art/ano/doc'; } } } },
+                scales: { y: { beginAtZero:true, title:{ display:true, text:'art/ano por docente' } } }
+            }
+        });
+    }
+
+    // Top 30 programas by ma_all
+    const tb = document.getElementById('tbodyProg');
+    if (tb) {
+        const top = recs.slice().sort((a,b) => (b.ma_all||0) - (a.ma_all||0)).slice(0, 30);
+        tb.innerHTML = top.map((r, i) => {
+            const star = r.is_unb ? '\u2605 ' : '';
+            const nome = (r.programa || '').length > 60 ? r.programa.slice(0,60) + '\u2026' : (r.programa || '');
+            return '<tr><td>' + (i+1) + '</td><td title="' + (r.programa||'').replace(/"/g,'&quot;') + '" style="max-width:380px;overflow:hidden;text-overflow:ellipsis;">' + star + nome + '</td><td>' + (r.sigla||'-') + '</td><td>' + (r.uf||'-') + '</td><td>' + r.nota + '</td><td>' + r.quad + '</td><td>' + (r.n_doc||0).toLocaleString('pt-BR') + '</td><td>' + (r.ma_all!=null ? r.ma_all.toFixed(2) : '-') + '</td><td>' + (r.ma_pq!=null ? r.ma_pq.toFixed(2) : '-') + '</td><td>' + (r.ma_perm!=null ? r.ma_perm.toFixed(2) : '-') + '</td><td>' + (r.avg_if!=null ? r.avg_if.toFixed(2) : '-') + '</td></tr>';
+        }).join('');
+    }
+}
+
+function renderTables(recs, f) {
+    // nothing extra — already populated by individual renderers
+}
+
+// === EXPORT CSV ===
+function exportCSV() {
+    const f = getFilters();
+    const recs = filterRecords(f);
+    if (!recs.length) { toast('Nada a exportar'); return; }
+
+    const header = ['cd','sigla','programa','uf','regiao','nota','quad','n_doc','n_pq','n_spq','pct_pq','n_perm','n_colab','n_visit','ma_pq','ma_spq','ma_all','ma_perm','ma_colab','ma_visit','avg_if','med_if','max_if','n_if','if_lo','if_mi','if_hi','prod_total_filtrada'];
+    const rows = recs.map(r => {
+        const p = prodSum(r, f.subs);
+        return [
+            r.cd, r.sigla, '"' + (r.programa||'').replace(/"/g,'""') + '"',
+            r.uf, REGIAO_LABELS[r._r] || r._r,
+            r.nota, r.quad,
+            r.n_doc||0, r.n_pq||0, r.n_spq||0, r.pct_pq||0,
+            r.n_perm||0, r.n_colab||0, r.n_visit||0,
+            r.ma_pq||0, r.ma_spq||0, r.ma_all||0,
+            r.ma_perm||0, r.ma_colab||0, r.ma_visit||0,
+            r.avg_if||0, r.med_if||0, r.max_if||0, r.n_if||0,
+            r.if_lo||0, r.if_mi||0, r.if_hi||0,
+            p.total
+        ].join(';');
+    });
+
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const stamp = d.getFullYear() + pad(d.getMonth()+1) + pad(d.getDate()) + '-' + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
+
+    let csv = '# MAPA-PG v' + VERSION + ' \u2014 Estat\u00edsticas \u2014 ' + d.toLocaleString('pt-BR') + '\n';
+    csv += '# Prof. David L. Azevedo | Fonte: Portal de Dados Abertos da CAPES\n';
+    csv += '# Subtipos filtrados: ' + f.subs.map(s => SUB_LABELS[s]).join(', ') + '\n';
+    csv += header.join(';') + '\n' + rows.join('\n');
+
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'report-PG-estatisticas-' + stamp + '.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    toast(recs.length + ' registros exportados em CSV');
+}
+
+// === EXPORT REPORT TXT ===
+function exportReport() {
+    const f = getFilters();
+    const recs = filterRecords(f);
+    if (!recs.length) { toast('Nada a exportar'); return; }
+
+    const lines = []; const p = s => lines.push(s);
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const padR = (s, n) => { s = String(s); while (s.length < n) s += ' '; return s; };
+    const padL = (s, n) => { s = String(s); while (s.length < n) s = ' ' + s; return s; };
+
+    p('\u2550'.repeat(62));
+    p('  MAPA-PG v' + VERSION + ' \u2014 RELAT\u00d3RIO DE ESTAT\u00cdSTICAS');
+    p('  Gerado em: ' + d.toLocaleString('pt-BR'));
+    p('  \u00c1rea: ' + (DATA.metadata.area || '\u2014'));
+    p('\u2550'.repeat(62));
+    p('');
+
+    p('FILTROS APLICADOS:');
+    p('  Notas CAPES: ' + f.notas.join(', '));
+    p('  Quadri\u00eanios: ' + f.quads.join(', '));
+    p('  Regi\u00f5es: ' + f.regs.map(r => REGIAO_LABELS[r]).join(', '));
+    p('  UFs: ' + (f.ufs.length ? f.ufs.join(', ') : '(nenhuma)'));
+    p('  Subtipos: ' + f.subs.map(s => SUB_LABELS[s] || s).join(', '));
+    p('  Estratos IF: ' + f.ifs.join(', '));
+    if (f.searchOn && f.searchTerm) p('  Busca por sigla: "' + f.searchTerm + '"');
+    p('');
+
+    const totalDoc = sumNum(recs, 'n_doc');
+    const totalPq  = sumNum(recs, 'n_pq');
+    let totalProd = 0; recs.forEach(r => totalProd += prodSum(r, f.subs).total);
+    let ifSumT = 0, ifNT = 0;
+    recs.forEach(r => { if (r.avg_if && r.n_if) { ifSumT += r.avg_if * r.n_if; ifNT += r.n_if; } });
+    const ifMedio = ifNT > 0 ? (ifSumT/ifNT).toFixed(2) : '-';
+
+    p('TOTAIS:');
+    p('  Registros (programa\u00d7quad): ' + recs.length);
+    p('  Programas distintos: ' + new Set(recs.map(r => r.cd)).size);
+    p('  IES distintas: ' + new Set(recs.map(r => r.sigla)).size);
+    p('  UFs: ' + new Set(recs.map(r => r.uf)).size);
+    p('  Docentes (soma): ' + totalDoc.toLocaleString('pt-BR'));
+    p('  Pesquisadores PQ: ' + totalPq.toLocaleString('pt-BR'));
+    p('  Produ\u00e7\u00e3o total (subtipos filtrados): ' + totalProd.toLocaleString('pt-BR'));
+    p('  Prod./Doc.: ' + (totalDoc > 0 ? (totalProd/totalDoc).toFixed(2) : '-'));
+    p('  IF m\u00e9dio (ponderado): ' + ifMedio);
+    p('');
+
+    // Por nota
+    p('POR NOTA CAPES:');
+    p('  ' + padR('Nota', 8) + padL('Prog', 8) + padL('IES', 6) + padL('Docentes', 12) + padL('PQ', 8) + padL('%PQ', 8) + padL('Prod.', 14) + padL('Prod/Doc', 10));
+    p('  ' + '\u2500'.repeat(78));
+    const byNota = {};
+    recs.forEach(r => {
+        if (!byNota[r.nota]) byNota[r.nota] = { prog:0, doc:0, pq:0, prod:0, ies:new Set() };
+        byNota[r.nota].prog++;
+        byNota[r.nota].doc += (r.n_doc||0); byNota[r.nota].pq += (r.n_pq||0);
+        byNota[r.nota].prod += prodSum(r, f.subs).total;
+        byNota[r.nota].ies.add(r.sigla);
+    });
+    NOTAS_ALL.forEach(n => {
+        if (!byNota[n]) return;
+        const x = byNota[n];
+        const pctpq = x.doc > 0 ? (x.pq*100/x.doc).toFixed(1) : '0';
+        const pdoc  = x.doc > 0 ? (x.prod/x.doc).toFixed(2) : '-';
+        p('  ' + padR('Nota ' + n, 8) + padL(x.prog, 8) + padL(x.ies.size, 6) + padL(x.doc.toLocaleString('pt-BR'), 12) + padL(x.pq.toLocaleString('pt-BR'), 8) + padL(pctpq + '%', 8) + padL(x.prod.toLocaleString('pt-BR'), 14) + padL(pdoc, 10));
+    });
+    p('');
+
+    // Por regiao
+    p('POR REGI\u00c3O:');
+    p('  ' + padR('Regi\u00e3o', 15) + padL('Prog', 8) + padL('%', 7) + padL('IES', 6) + padL('Docentes', 12) + padL('Prod.', 14) + padL('%', 7));
+    p('  ' + '\u2500'.repeat(70));
+    const byReg = {};
+    recs.forEach(r => {
+        if (!byReg[r._r]) byReg[r._r] = { prog:0, doc:0, prod:0, ies:new Set() };
+        byReg[r._r].prog++;
+        byReg[r._r].doc += (r.n_doc||0);
+        byReg[r._r].prod += prodSum(r, f.subs).total;
+        byReg[r._r].ies.add(r.sigla);
+    });
+    ['N','NE','CO','SE','S'].forEach(r => {
+        if (!byReg[r]) return;
+        const x = byReg[r];
+        p('  ' + padR(REGIAO_LABELS[r], 15) + padL(x.prog, 8) + padL((x.prog*100/recs.length).toFixed(1) + '%', 7) + padL(x.ies.size, 6) + padL(x.doc.toLocaleString('pt-BR'), 12) + padL(x.prod.toLocaleString('pt-BR'), 14) + padL((totalProd > 0 ? (x.prod*100/totalProd).toFixed(1) : 0) + '%', 7));
+    });
+    p('');
+
+    // Por quad
+    p('POR QUADRI\u00caNIO:');
+    const byQ = {};
+    recs.forEach(r => {
+        if (!byQ[r.quad]) byQ[r.quad] = { prog:0, doc:0, prod:0, ies:new Set() };
+        byQ[r.quad].prog++;
+        byQ[r.quad].doc += (r.n_doc||0);
+        byQ[r.quad].prod += prodSum(r, f.subs).total;
+        byQ[r.quad].ies.add(r.sigla);
+    });
+    QUAD_ALL.forEach(q => {
+        if (!byQ[q]) return;
+        const x = byQ[q];
+        const pdoc = x.doc > 0 ? (x.prod/x.doc).toFixed(2) : '-';
+        p('  ' + q + ': ' + x.prog + ' programas | ' + x.ies.size + ' IES | ' + x.doc.toLocaleString('pt-BR') + ' docentes | ' + x.prod.toLocaleString('pt-BR') + ' publica\u00e7\u00f5es | prod/doc=' + pdoc);
+    });
+    p('');
+
+    // Top 10 IES by production
+    p('TOP 10 IES POR PRODU\u00c7\u00c3O:');
+    const byI = {};
+    recs.forEach(r => {
+        const sg = r.sigla || '?';
+        if (!byI[sg]) byI[sg] = { prog:0, doc:0, prod:0, ufs:new Set(), is_unb: !!r.is_unb };
+        byI[sg].prog++;
+        byI[sg].doc += (r.n_doc||0);
+        byI[sg].prod += prodSum(r, f.subs).total;
+        byI[sg].ufs.add(r.uf);
+    });
+    const iesArr = Object.entries(byI).map(e => ({ sg:e[0], ...e[1], ufs:[...e[1].ufs] })).sort((a,b) => b.prod - a.prod);
+    iesArr.slice(0,10).forEach((x, i) => {
+        const star = x.is_unb ? '\u2605 ' : '  ';
+        const pdoc = x.doc > 0 ? (x.prod/x.doc).toFixed(2) : '-';
+        p('  ' + star + padL(String(i+1) + '.', 4) + ' ' + padR(x.sg, 14) + padL(x.prog + ' prog', 10) + padL(x.doc.toLocaleString('pt-BR') + ' doc', 12) + padL(x.prod.toLocaleString('pt-BR') + ' pub', 14) + '  prod/doc=' + pdoc);
+    });
+    p('');
+
+    // Por subtipo
+    p('POR SUBTIPO BIBLIOGR\u00c1FICO:');
+    const bySubDet = {};
+    SUB_ORDER.forEach(s => bySubDet[s] = { total:0, perm:0, colab:0, visit:0, pq:0, spq:0 });
+    recs.forEach(r => {
+        const ps = r.prod_sub || {};
+        SUB_ORDER.forEach(s => {
+            if (ps[s] && f.subs.includes(s)) {
+                const x = ps[s];
+                bySubDet[s].total += x.total||0; bySubDet[s].perm += x.perm||0;
+                bySubDet[s].colab += x.colab||0; bySubDet[s].visit += x.visit||0;
+                bySubDet[s].pq += x.pq||0; bySubDet[s].spq += x.spq||0;
+            }
+        });
+    });
+    let sumTotal = 0; SUB_ORDER.forEach(s => { if (f.subs.includes(s)) sumTotal += bySubDet[s].total; });
+    SUB_ORDER.forEach(s => {
+        if (!f.subs.includes(s)) return;
+        const x = bySubDet[s];
+        const pct = sumTotal > 0 ? (x.total*100/sumTotal).toFixed(1) : '0';
+        p('  ' + padR(SUB_LABELS[s], 26) + padL(x.total.toLocaleString('pt-BR'), 12) + padL(pct + '%', 8) + '  [perm=' + x.perm + ' colab=' + x.colab + ' visit=' + x.visit + ' pq=' + x.pq + ' s/pq=' + x.spq + ']');
+    });
+    p('');
+
+    // Producao por pesquisador (medias ponderadas)
+    p('PRODU\u00c7\u00c3O POR PESQUISADOR (m\u00e9dia ponderada, art/ano por docente):');
+    const wavg = (num, den) => den > 0 ? (num/den).toFixed(2) : '-';
+    const sPermN=sumNum(recs,'n_perm'),   sPermS=recs.reduce((s,r)=>s+(r.ma_perm||0)*(r.n_perm||0),0);
+    const sColN =sumNum(recs,'n_colab'),  sColS =recs.reduce((s,r)=>s+(r.ma_colab||0)*(r.n_colab||0),0);
+    const sVisN =sumNum(recs,'n_visit'),  sVisS =recs.reduce((s,r)=>s+(r.ma_visit||0)*(r.n_visit||0),0);
+    const sPqN  =sumNum(recs,'n_pq'),     sPqS  =recs.reduce((s,r)=>s+(r.ma_pq||0)*(r.n_pq||0),0);
+    const sSpqN =sumNum(recs,'n_spq'),    sSpqS =recs.reduce((s,r)=>s+(r.ma_spq||0)*(r.n_spq||0),0);
+    const sAllN =sumNum(recs,'n_doc'),    sAllS =recs.reduce((s,r)=>s+(r.ma_all||0)*(r.n_doc||0),0);
+    p('  Permanente:  ' + wavg(sPermS, sPermN) + '  (n=' + sPermN.toLocaleString('pt-BR') + ')');
+    p('  Colaborador: ' + wavg(sColS,  sColN)  + '  (n=' + sColN.toLocaleString('pt-BR')  + ')');
+    p('  Visitante:   ' + wavg(sVisS,  sVisN)  + '  (n=' + sVisN.toLocaleString('pt-BR')  + ')');
+    p('  Bolsista PQ: ' + wavg(sPqS,   sPqN)   + '  (n=' + sPqN.toLocaleString('pt-BR')   + ')');
+    p('  Sem PQ:      ' + wavg(sSpqS,  sSpqN)  + '  (n=' + sSpqN.toLocaleString('pt-BR')  + ')');
+    p('  Todos:       ' + wavg(sAllS,  sAllN)  + '  (n=' + sAllN.toLocaleString('pt-BR')  + ')');
+    p('');
+
+    // Fator de impacto
+    p('FATOR DE IMPACTO (OpenAlex 2yr):');
+    let ifLo=0, ifMi=0, ifHi=0;
+    recs.forEach(r => { const x = ifSum(r, f.ifs); ifLo += x.lo; ifMi += x.mi; ifHi += x.hi; });
+    const ifTot = ifLo + ifMi + ifHi;
+    p('  IF m\u00e9dio (ponderado por n_if): ' + ifMedio);
+    p('  Estratos (artigos classificados):');
+    if (f.ifs.includes('lo')) p('    Baixo  (IF<2.2):  ' + ifLo.toLocaleString('pt-BR') + (ifTot>0 ? '  (' + (ifLo*100/ifTot).toFixed(1) + '%)' : ''));
+    if (f.ifs.includes('mi')) p('    M\u00e9dio  (2.2\u20138.0): ' + ifMi.toLocaleString('pt-BR') + (ifTot>0 ? '  (' + (ifMi*100/ifTot).toFixed(1) + '%)' : ''));
+    if (f.ifs.includes('hi')) p('    Alto   (IF>8.0):  ' + ifHi.toLocaleString('pt-BR') + (ifTot>0 ? '  (' + (ifHi*100/ifTot).toFixed(1) + '%)' : ''));
+    p('');
+
+    p('\u2500'.repeat(62));
+    p('Prof. David L. Azevedo | MAPA-PG v' + VERSION);
+    p('Fonte: Portal de Dados Abertos da CAPES');
+    p('URL: https://dadosabertos.capes.gov.br/');
+    p('\u2500'.repeat(62));
+
+    const stamp = d.getFullYear() + pad(d.getMonth()+1) + pad(d.getDate()) + '-' + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
+    const filename = 'report-PG-estatisticas-' + stamp + '.txt';
+    const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    toast('Relat\u00f3rio salvo: ' + filename);
+}
+
+// Search-by-sigla toggle
+(function() {
+    const chk = document.getElementById('searchEnabled');
+    const inp = document.getElementById('searchSigla');
+    chk.addEventListener('change', () => { inp.disabled = !chk.checked; if (chk.checked) inp.focus(); });
+})();
+
+// Mobile sidebar toggle
+(function() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    const toggle = document.getElementById('menuToggle');
+    if (!toggle) return;
+    const open = () => { sidebar.classList.add('open'); overlay.classList.add('show'); };
+    const close= () => { sidebar.classList.remove('open'); overlay.classList.remove('show'); };
+    toggle.addEventListener('click', () => { sidebar.classList.contains('open') ? close() : open(); });
+    overlay.addEventListener('click', close);
+})();
+
+document.getElementById('headerDate').textContent = new Date().toLocaleDateString('pt-BR');
+loadAll();
+</script>
+</body>
+</html>
