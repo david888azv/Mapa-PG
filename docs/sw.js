@@ -1,4 +1,4 @@
-const CACHE = 'mapa-pg-v1.5.9';
+const CACHE = 'mapa-pg-v1.5.10';
 const ASSETS = [
   './',
   './index.html',
